@@ -1,9 +1,10 @@
 use std::fmt::{Display, Error, Formatter};
 use std::marker::PhantomData;
 
-use stdweb::web::event::*;
+// use stdweb::web::event::*;
 use stdweb::web::{Element, EventListenerHandle, IEventTarget};
 
+use yew::html;
 use yew::html::{Component, Html};
 use yew::virtual_dom::vnode::VNode;
 use yew::virtual_dom::vtag::VTag;
@@ -62,79 +63,79 @@ macro_rules! declare_events_yew {
 // This needs review.
 
 declare_events_yew! {
-    // abort: ?
-    // autocomplete: ?
-    // autocompleteerror: ?
-    blur: blur
-    // cancel: ?
-    // canplay: ?
-    // canplaythrough: ?
-    change: change
-    click: click
-    // close: ?
-    contextmenu: contextmenu
-    // cuechange: ?
-    dblclick: doubleclick
-    drag: drag
-    dragend: dragend
-    dragenter: dragenter
-    dragexit: dragexit
-    dragleave: dragleave
-    dragover: dragover
-    dragstart: dragstart
-    drop: drop
-    // durationchange: ?
-    // emptied: ?
-    // ended: ?
-    // error: ?
-    focus: focus
-    // ?: gotpointercapture
-    input: input
-    // invalid: ?
-    keydown: keydown
-    keypress: keypress
-    keyup: keyup
-    // load: ?
-    // loadeddata: ?
-    // loadedmetadata: ?
-    // loadstart: ?
-    // ?: lostpointercapture
-    mousedown: mousedown
-    mouseenter: mouseenter
-    mouseleave: mouseleave
-    mousemove: mousemove
-    mouseout: mouseout
-    mouseover: mouseover
-    mouseup: mouseup
-    mousewheel: mousewheel
-    // pause: ?
-    // play: ?
-    // playing: ?
-    // ?: pointercancel
-    // ?: pointerdown
-    // ?: pointerenter
-    // ?: pointerleave
-    // ?: pointermove
-    // ?: pointerout
-    // ?: pointerover
-    // ?: pointerup
-    // progress: ?
-    // ratechange: ?
-    // reset: ?
-    // resize: ?
-    scroll: scroll
-    // seeked: ?
-    // seeking: ?
-    // select: ?
-    // show: ?
-    // sort: ?
-    // stalled: ?
-    submit: submit
-    // suspend: ?
-    // timeupdate: ?
-    // toggle: ?
-    // volumechange: ?
-    // waiting: ?
+    // abort: html::?::Event,
+    // autocomplete: html::?::Event,
+    // autocompleteerror: html::?::Event,
+    blur: html::onblur::Event,
+    // cancel: html::?::Event,
+    // canplay: html::?::Event,
+    // canplaythrough: html::?::Event,
+    change: html::onchange::Event,
+    click: html::onclick::Event,
+    // close: html::?::Event,
+    contextmenu: html::oncontextmenu::Event,
+    // cuechange: html::?::Event,
+    dblclick: html::ondoubleclick::Event,
+    drag: html::ondrag::Event,
+    dragend: html::ondragend::Event,
+    dragenter: html::ondragenter::Event,
+    dragexit: html::ondragexit::Event,
+    dragleave: html::ondragleave::Event,
+    dragover: html::ondragover::Event,
+    dragstart: html::ondragstart::Event,
+    drop: html::ondrop::Event,
+    // durationchange: html::?::Event,
+    // emptied: html::?::Event,
+    // ended: html::?::Event,
+    // error: html::?::Event,
+    focus: html::onfocus::Event,
+    // ?: html::ongotpointercapture::Event,
+    input: html::oninput::Event,
+    // invalid: html::?::Event,
+    keydown: html::onkeydown::Event,
+    keypress: html::onkeypress::Event,
+    keyup: html::onkeyup::Event,
+    // load: html::?::Event,
+    // loadeddata: html::?::Event,
+    // loadedmetadata: html::?::Event,
+    // loadstart: html::?::Event,
+    // ?: html::onlostpointercapture::Event,
+    mousedown: html::onmousedown::Event,
+    mouseenter: html::onmouseenter::Event,
+    mouseleave: html::onmouseleave::Event,
+    mousemove: html::onmousemove::Event,
+    mouseout: html::onmouseout::Event,
+    mouseover: html::onmouseover::Event,
+    mouseup: html::onmouseup::Event,
+    mousewheel: html::onmousewheel::Event,
+    // pause: html::?::Event,
+    // play: html::?::Event,
+    // playing: html::?::Event,
+    // ?: html::onpointercancel::Event,
+    // ?: html::onpointerdown::Event,
+    // ?: html::onpointerenter::Event,
+    // ?: html::onpointerleave::Event,
+    // ?: html::onpointermove::Event,
+    // ?: html::onpointerout::Event,
+    // ?: html::onpointerover::Event,
+    // ?: html::onpointerup::Event,
+    // progress: html::?::Event,
+    // ratechange: html::?::Event,
+    // reset: html::?::Event,
+    // resize: html::?::Event,
+    scroll: html::onscroll::Event,
+    // seeked: html::?::Event,
+    // seeking: html::?::Event,
+    // select: html::?::Event,
+    // show: html::?::Event,
+    // sort: html::?::Event,
+    // stalled: html::?::Event,
+    submit: html::onsubmit::Event,
+    // suspend: html::?::Event,
+    // timeupdate: html::?::Event,
+    // toggle: html::?::Event,
+    // volumechange: html::?::Event,
+    // waiting: html::?::Event,
 }
 
 impl<COMP: Component> Display for Events<COMP> {
@@ -144,11 +145,11 @@ impl<COMP: Component> Display for Events<COMP> {
 }
 
 /// Wrapper type for closures as event handlers.
-pub struct EFn<F, E>(Option<F>, PhantomData<E>);
+pub struct EFn<F, E, COMP: Component>(Option<F>, PhantomData<E>, PhantomData<COMP>);
 
-impl<F, E> EFn<F, E>
+impl<F, E, COMP: Component> EFn<F, E, COMP>
 where
-    F: FnMut(E) + 'static,
+    F: FnMut(E) -> COMP::Message + 'static,
 {
     pub fn new(f: F) -> Self {
         EFn(Some(f), PhantomData)
@@ -157,18 +158,18 @@ where
 
 impl<F, E, COMP: Component> From<F> for Box<dyn EventHandler<Yew<COMP>, E>>
 where
-    F: FnMut(E) + 'static,
-    E: ConcreteEvent + 'static,
+    F: FnMut(E) -> COMP::Message + 'static,
+    E: 'static,
 {
     fn from(f: F) -> Self {
         Box::new(EFn::new(f))
     }
 }
 
-impl<F, E, COMP: Component> EventHandler<Yew<COMP>, E> for EFn<F, E>
+impl<F, E, COMP: Component> EventHandler<Yew<COMP>, E> for EFn<F, E, COMP>
 where
-    F: FnMut(E) + 'static,
-    E: ConcreteEvent + 'static,
+    F: FnMut(E) -> COMP::Message + 'static,
+    E: 'static,
 {
     fn attach(&mut self, target: &mut <Yew<COMP> as OutputType>::EventTarget) -> EventListenerHandle {
         let handler = self.0.take().unwrap();
