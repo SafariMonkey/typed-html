@@ -32,9 +32,7 @@ macro_rules! declare_events_yew {
         }
 
         $(
-            impl ConcreteEvent for html::$action::Event {
-                const EVENT_TYPE: &'static str = stringify!($name);
-            }
+            impl ConcreteEvent for html::$action::Event {}
 
             impl<F, C> From<F> for BoxedListener<C, html::$action::Event>
             where
@@ -166,14 +164,8 @@ impl<C: Component + Renderable<C>> Display for Events<C> {
     }
 }
 
-/// A trait representing a concrete event type.
-/// Stolen from stdweb: https://docs.rs/stdweb/0.4.15/stdweb/web/event/trait.ConcreteEvent.html
-pub trait ConcreteEvent {
-    /// A string representing the event type.
-    ///
-    /// [(JavaScript docs)](https://developer.mozilla.org/en-US/docs/Web/API/Event/type)
-    const EVENT_TYPE: &'static str;
-}
+/// A trait representing any concrete event type, as Yew doesn't have one.
+pub trait ConcreteEvent {}
 
 pub struct BoxedListener<C: Component + Renderable<C>, E: ConcreteEvent>(
     Option<Box<dyn Listener<C>>>,
