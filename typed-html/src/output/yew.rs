@@ -1,12 +1,8 @@
 use std::fmt::{Display, Error, Formatter};
 use std::marker::PhantomData;
 
-// use stdweb::web::event::*;
-use stdweb::web::{Element, EventListenerHandle, IEventTarget};
-
 use yew::html;
 use yew::html::{Component, Html, Renderable};
-use yew::virtual_dom::vnode::VNode;
 use yew::virtual_dom::vtag::VTag;
 use yew::virtual_dom::vtext::VText;
 use yew::virtual_dom::Listener;
@@ -206,33 +202,10 @@ impl<COMP: Component + Renderable<COMP>> Yew<COMP> {
         });
     }
 
-    // pub fn convert_listener() -> {}
-
-    // pub fn build(
-    //     document: &web::Document,
-    //     vnode: VNode<'_, Yew<COMP>>,
-    // ) -> Result<web::Node, web::error::InvalidCharacterError> {
-    //     match vnode {
-    //         VNode::Text(text) => Ok(document.create_text_node(&text).into()),
-    //         VNode::UnsafeText(text) => Ok(document.create_text_node(&text).into()),
-    //         VNode::Element(element) => {
-    //             let mut node = document.create_element(element.name)?;
-    //             for (key, value) in element.attributes {
-    //                 node.set_attribute(&key, &value)?;
-    //             }
-    //             Yew::<COMP>::install_handlers(&mut node, element.events);
-    //             for child in element.children {
-    //                 let child_node = Yew::<COMP>::build(document, child)?;
-    //                 node.append_child(&child_node);
-    //             }
-    //             Ok(node.into())
-    //         }
-    //     }
-    // }
-    pub fn to_yew_html(vnode: DomVNode<'_, Yew<COMP>>) -> Html<COMP> {
-        let node: Option<VNode<COMP>> = match vnode {
-            DomVNode::Text(text) => Some(VText::new(text.to_owned()).into()),
-            DomVNode::UnsafeText(text) => Some(VText::new(text.to_owned()).into()),
+    pub fn build(vnode: DomVNode<'_, Yew<COMP>>) -> Html<COMP> {
+        match vnode {
+            DomVNode::Text(text) => VText::new(text.to_owned()).into(),
+            DomVNode::UnsafeText(text) => VText::new(text.to_owned()).into(),
             DomVNode::Element(element) => {
                 let mut tag = VTag::new(element.name);
                 tag.attributes = element
@@ -241,10 +214,11 @@ impl<COMP: Component + Renderable<COMP>> Yew<COMP> {
                     .map(|(k, v)| (k.to_owned(), v))
                     .collect();
                 Yew::<COMP>::install_handlers(&mut tag, element.events);
-                Some(tag.into())
+                for child in element.children {
+                    tag.add_child(Yew::<COMP>::build(child))
+                }
+                tag.into()
             }
-        };
-        node.unwrap()
-        // VNode::<COMP>::VTag(VTag::<COMP>::new("br"))
+        }
     }
 }
