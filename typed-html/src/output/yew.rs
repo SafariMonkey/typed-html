@@ -31,7 +31,7 @@ macro_rules! declare_events_yew {
         /// Container type for DOM events.
         pub struct Events<COMP: Component + Renderable<COMP>> {
             $(
-                pub $name: Option<BoxedListener<COMP, html::$action::Event>>,
+                pub $name: Option<Box<dyn EventHandler<Yew<COMP>, html::$action::Event>>>,
             )*
         }
 
@@ -47,6 +47,16 @@ macro_rules! declare_events_yew {
             {
                 fn from(f: F) -> Self {
                     BoxedListener(Some(Box::new(html::$action::Wrapper::from(f))), PhantomData)
+                }
+            }
+
+            impl<F, COMP> From<F> for Box<dyn EventHandler<Yew<COMP>, html::$action::Event>>
+            where
+                F: Fn(html::$action::Event) -> COMP::Message + 'static,
+                COMP: Component + Renderable<COMP>,
+            {
+                fn from(f: F) -> Self {
+                    Box::new(BoxedListener::from(f))
                 }
             }
         )*
@@ -190,11 +200,11 @@ where
 }
 
 impl<COMP: Component + Renderable<COMP>> Yew<COMP> {
-    // pub fn install_handlers(target: &mut VTag<COMP>, handlers: &mut Events<COMP>) {
-    //     for_events_yew!(handler in handlers => {
-    //         handler.attach(target);
-    //     });
-    // }
+    pub fn install_handlers(target: &mut VTag<COMP>, handlers: &mut Events<COMP>) {
+        for_events_yew!(handler in handlers => {
+            handler.attach(target);
+        });
+    }
 
     // pub fn convert_listener() -> {}
 
@@ -230,7 +240,7 @@ impl<COMP: Component + Renderable<COMP>> Yew<COMP> {
                     .into_iter()
                     .map(|(k, v)| (k.to_owned(), v))
                     .collect();
-                // Yew::<COMP>::install_handlers(&mut tag, element.events);
+                Yew::<COMP>::install_handlers(&mut tag, element.events);
                 Some(tag.into())
             }
         };
