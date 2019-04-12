@@ -11,6 +11,7 @@ use yew::virtual_dom::vtag::VTag;
 use yew::virtual_dom::vtext::VText;
 use yew::virtual_dom::Listener;
 
+use crate::events::EventHandler;
 use crate::dom::VNode as DomVNode;
 use crate::OutputType;
 
@@ -21,8 +22,8 @@ pub struct Yew<COMP: Component + Renderable<COMP>> {
 
 impl<COMP: Component + Renderable<COMP>> OutputType for Yew<COMP> {
     type Events = Events<COMP>;
-    type EventTarget = Element;
-    type EventListenerHandle = EventListenerHandle;
+    type EventTarget = VTag<COMP>;
+    type EventListenerHandle = ();
 }
 
 macro_rules! declare_events_yew {
@@ -45,7 +46,7 @@ macro_rules! declare_events_yew {
                 F: Fn(html::$action::Event) -> COMP::Message + 'static,
             {
                 fn from(f: F) -> Self {
-                    BoxedListener(Box::new(html::$action::Wrapper::from(f)), PhantomData)
+                    BoxedListener(Some(Box::new(html::$action::Wrapper::from(f))), PhantomData)
                 }
             }
         )*
@@ -169,14 +170,29 @@ pub trait ConcreteEvent {
 }
 
 pub struct BoxedListener<COMP: Component + Renderable<COMP>, E: ConcreteEvent>(
-    Box<dyn Listener<COMP>>,
+    Option<Box<dyn Listener<COMP>>>,
     PhantomData<E>,
 );
+
+impl<E, COMP> EventHandler<Yew<COMP>, E> for BoxedListener<COMP, E>
+where
+    E: ConcreteEvent,
+    COMP: Component + Renderable<COMP>,
+{
+    fn attach(&mut self, target: &mut <Yew<COMP> as OutputType>::EventTarget) -> () {
+        let handler = self.0.take().unwrap();
+        target.add_listener(handler)
+    }
+
+    fn render(&self) -> Option<String> {
+        None
+    }
+}
 
 impl<COMP: Component + Renderable<COMP>> Yew<COMP> {
     // pub fn install_handlers(target: &mut VTag<COMP>, handlers: &mut Events<COMP>) {
     //     for_events_yew!(handler in handlers => {
-    //         target.add_listener(handler);
+    //         handler.attach(target);
     //     });
     // }
 
