@@ -32,6 +32,7 @@ macro_rules! declare_events_yew {
         }
 
         $(
+            impl private::Sealed for html::$action::Event {}
             impl ConcreteEvent for html::$action::Event {}
 
             impl<F, C> From<F> for BoxedListener<C, html::$action::Event>
@@ -165,7 +166,12 @@ impl<C: Component + Renderable<C>> Display for Events<C> {
 }
 
 /// A trait representing any concrete event type, as Yew doesn't have one.
-pub trait ConcreteEvent {}
+/// Cannot be implemented externally, as it's intended as a marker.
+pub trait ConcreteEvent: private::Sealed {}
+
+mod private {
+    pub trait Sealed {}
+}
 
 pub struct BoxedListener<C: Component + Renderable<C>, E: ConcreteEvent>(
     Option<Box<dyn Listener<C>>>,
