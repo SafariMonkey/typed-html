@@ -5,37 +5,52 @@ use std::marker::PhantomData;
 use stdweb::web::{Element, EventListenerHandle, IEventTarget};
 
 use yew::html;
-use yew::html::{Component, Html};
+use yew::html::{Component, Html, Renderable};
 use yew::virtual_dom::vnode::VNode;
 use yew::virtual_dom::vtag::VTag;
 use yew::virtual_dom::vtext::VText;
 use yew::virtual_dom::Listener;
 
 use crate::dom::VNode as DomVNode;
-use crate::events::EventHandler;
 use crate::OutputType;
 
 /// DOM output using the stdweb crate
-pub struct Yew<COMP: Component> {
+pub struct Yew<COMP: Component + Renderable<COMP>> {
     component_type: PhantomData<COMP>,
 }
 
-impl<COMP: Component> OutputType for Yew<COMP> {
+impl<COMP: Component + Renderable<COMP>> OutputType for Yew<COMP> {
     type Events = Events<COMP>;
     type EventTarget = Element;
     type EventListenerHandle = EventListenerHandle;
 }
 
 macro_rules! declare_events_yew {
-    ($($name:ident : $type:ty ,)*) => {
+    ($($name:ident : $action:ident ,)*) => {
         /// Container type for DOM events.
-        pub struct Events<COMP: Component> {
+        pub struct Events<COMP: Component + Renderable<COMP>> {
             $(
-                pub $name: Option<Box<dyn EventHandler<Yew<COMP>, $type>>>,
+                pub $name: Option<BoxedListener<COMP, html::$action::Event>>,
             )*
         }
 
-        impl<COMP: Component> Default for Events<COMP> {
+        $(
+            impl ConcreteEvent for html::$action::Event {
+                const EVENT_TYPE: &'static str = stringify!($name);
+            }
+
+            impl<F, COMP> From<F> for BoxedListener<COMP, html::$action::Event>
+            where
+                COMP: Component + Renderable<COMP>,
+                F: Fn(html::$action::Event) -> COMP::Message + 'static,
+            {
+                fn from(f: F) -> Self {
+                    BoxedListener(Box::new(html::$action::Wrapper::from(f)), PhantomData)
+                }
+            }
+        )*
+
+        impl<COMP: Component + Renderable<COMP>> Default for Events<COMP> {
             fn default() -> Self {
                 Events {
                     $(
@@ -63,125 +78,102 @@ macro_rules! declare_events_yew {
 // This needs review.
 
 declare_events_yew! {
-    // abort: html::?::Event,
-    // autocomplete: html::?::Event,
-    // autocompleteerror: html::?::Event,
-    blur: html::onblur::Event,
-    // cancel: html::?::Event,
-    // canplay: html::?::Event,
-    // canplaythrough: html::?::Event,
-    change: html::onchange::Event,
-    click: html::onclick::Event,
-    // close: html::?::Event,
-    contextmenu: html::oncontextmenu::Event,
-    // cuechange: html::?::Event,
-    dblclick: html::ondoubleclick::Event,
-    drag: html::ondrag::Event,
-    dragend: html::ondragend::Event,
-    dragenter: html::ondragenter::Event,
-    dragexit: html::ondragexit::Event,
-    dragleave: html::ondragleave::Event,
-    dragover: html::ondragover::Event,
-    dragstart: html::ondragstart::Event,
-    drop: html::ondrop::Event,
-    // durationchange: html::?::Event,
-    // emptied: html::?::Event,
-    // ended: html::?::Event,
-    // error: html::?::Event,
-    focus: html::onfocus::Event,
-    // ?: html::ongotpointercapture::Event,
-    input: html::oninput::Event,
-    // invalid: html::?::Event,
-    keydown: html::onkeydown::Event,
-    keypress: html::onkeypress::Event,
-    keyup: html::onkeyup::Event,
-    // load: html::?::Event,
-    // loadeddata: html::?::Event,
-    // loadedmetadata: html::?::Event,
-    // loadstart: html::?::Event,
-    // ?: html::onlostpointercapture::Event,
-    mousedown: html::onmousedown::Event,
-    mouseenter: html::onmouseenter::Event,
-    mouseleave: html::onmouseleave::Event,
-    mousemove: html::onmousemove::Event,
-    mouseout: html::onmouseout::Event,
-    mouseover: html::onmouseover::Event,
-    mouseup: html::onmouseup::Event,
-    mousewheel: html::onmousewheel::Event,
-    // pause: html::?::Event,
-    // play: html::?::Event,
-    // playing: html::?::Event,
-    // ?: html::onpointercancel::Event,
-    // ?: html::onpointerdown::Event,
-    // ?: html::onpointerenter::Event,
-    // ?: html::onpointerleave::Event,
-    // ?: html::onpointermove::Event,
-    // ?: html::onpointerout::Event,
-    // ?: html::onpointerover::Event,
-    // ?: html::onpointerup::Event,
-    // progress: html::?::Event,
-    // ratechange: html::?::Event,
-    // reset: html::?::Event,
-    // resize: html::?::Event,
-    scroll: html::onscroll::Event,
-    // seeked: html::?::Event,
-    // seeking: html::?::Event,
-    // select: html::?::Event,
-    // show: html::?::Event,
-    // sort: html::?::Event,
-    // stalled: html::?::Event,
-    submit: html::onsubmit::Event,
-    // suspend: html::?::Event,
-    // timeupdate: html::?::Event,
-    // toggle: html::?::Event,
-    // volumechange: html::?::Event,
-    // waiting: html::?::Event,
+    // abort: Z,
+    // autocomplete: Z,
+    // autocompleteerror: Z,
+    blur: onblur,
+    // cancel: Z,
+    // canplay: Z,
+    // canplaythrough: Z,
+    change: onchange,
+    click: onclick,
+    // // close: Z,
+    // contextmenu: oncontextmenu,
+    // // cuechange: Z,
+    // dblclick: ondoubleclick,
+    // drag: ondrag,
+    // dragend: ondragend,
+    // dragenter: ondragenter,
+    // dragexit: ondragexit,
+    // dragleave: ondragleave,
+    // dragover: ondragover,
+    // dragstart: ondragstart,
+    // drop: ondrop,
+    // // durationchange: Z,
+    // // emptied: Z,
+    // // ended: Z,
+    // // error: Z,
+    // focus: onfocus,
+    // // Z: ongotpointercapture,
+    // input: oninput,
+    // // invalid: Z,
+    // keydown: onkeydown,
+    // keypress: onkeypress,
+    // keyup: onkeyup,
+    // // load: Z,
+    // // loadeddata: Z,
+    // // loadedmetadata: Z,
+    // // loadstart: Z,
+    // // Z: onlostpointercapture,
+    // mousedown: onmousedown,
+    // mouseenter: onmouseenter,
+    // mouseleave: onmouseleave,
+    // mousemove: onmousemove,
+    // mouseout: onmouseout,
+    // mouseover: onmouseover,
+    // mouseup: onmouseup,
+    // mousewheel: onmousewheel,
+    // // pause: Z,
+    // // play: Z,
+    // // playing: Z,
+    // // Z: onpointercancel,
+    // // Z: onpointerdown,
+    // // Z: onpointerenter,
+    // // Z: onpointerleave,
+    // // Z: onpointermove,
+    // // Z: onpointerout,
+    // // Z: onpointerover,
+    // // Z: onpointerup,
+    // // progress: Z,
+    // // ratechange: Z,
+    // // reset: Z,
+    // // resize: Z,
+    // scroll: onscroll,
+    // // seeked: Z,
+    // // seeking: Z,
+    // // select: Z,
+    // // show: Z,
+    // // sort: Z,
+    // // stalled: Z,
+    // submit: onsubmit,
+    // // suspend: Z,
+    // // timeupdate: Z,
+    // // toggle: Z,
+    // // volumechange: Z,
+    // // waiting: Z,
 }
 
-impl<COMP: Component> Display for Events<COMP> {
+impl<COMP: Component + Renderable<COMP>> Display for Events<COMP> {
     fn fmt(&self, _f: &mut Formatter) -> Result<(), Error> {
         Ok(())
     }
 }
 
-/// Wrapper type for closures as event handlers.
-pub struct EFn<F, E, COMP: Component>(Option<F>, PhantomData<E>, PhantomData<COMP>);
-
-impl<F, E, COMP: Component> EFn<F, E, COMP>
-where
-    F: FnMut(E) -> COMP::Message + 'static,
-{
-    pub fn new(f: F) -> Self {
-        EFn(Some(f), PhantomData)
-    }
+/// A trait representing a concrete event type.
+/// Stolen from stdweb: https://docs.rs/stdweb/0.4.15/stdweb/web/event/trait.ConcreteEvent.html
+pub trait ConcreteEvent {
+    /// A string representing the event type.
+    ///
+    /// [(JavaScript docs)](https://developer.mozilla.org/en-US/docs/Web/API/Event/type)
+    const EVENT_TYPE: &'static str;
 }
 
-impl<F, E, COMP: Component> From<F> for Box<dyn EventHandler<Yew<COMP>, E>>
-where
-    F: FnMut(E) -> COMP::Message + 'static,
-    E: 'static,
-{
-    fn from(f: F) -> Self {
-        Box::new(EFn::new(f))
-    }
-}
+pub struct BoxedListener<COMP: Component + Renderable<COMP>, E: ConcreteEvent>(
+    Box<dyn Listener<COMP>>,
+    PhantomData<E>,
+);
 
-impl<F, E, COMP: Component> EventHandler<Yew<COMP>, E> for EFn<F, E, COMP>
-where
-    F: FnMut(E) -> COMP::Message + 'static,
-    E: 'static,
-{
-    fn attach(&mut self, target: &mut <Yew<COMP> as OutputType>::EventTarget) -> EventListenerHandle {
-        let handler = self.0.take().unwrap();
-        target.add_event_listener(handler)
-    }
-
-    fn render(&self) -> Option<String> {
-        None
-    }
-}
-
-impl<COMP: Component> Yew<COMP> {
+impl<COMP: Component + Renderable<COMP>> Yew<COMP> {
     // pub fn install_handlers(target: &mut VTag<COMP>, handlers: &mut Events<COMP>) {
     //     for_events_yew!(handler in handlers => {
     //         target.add_listener(handler);
@@ -217,10 +209,14 @@ impl<COMP: Component> Yew<COMP> {
             DomVNode::UnsafeText(text) => Some(VText::new(text.to_owned()).into()),
             DomVNode::Element(element) => {
                 let mut tag = VTag::new(element.name);
-                tag.attributes = element.attributes.into_iter().map(|(k, v)| (k.to_owned(), v)).collect();
+                tag.attributes = element
+                    .attributes
+                    .into_iter()
+                    .map(|(k, v)| (k.to_owned(), v))
+                    .collect();
                 // Yew::<COMP>::install_handlers(&mut tag, element.events);
                 Some(tag.into())
-            },
+            }
         };
         node.unwrap()
         // VNode::<COMP>::VTag(VTag::<COMP>::new("br"))
