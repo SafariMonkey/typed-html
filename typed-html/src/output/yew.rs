@@ -7,8 +7,8 @@ use yew::virtual_dom::vtag::VTag;
 use yew::virtual_dom::vtext::VText;
 use yew::virtual_dom::Listener;
 
-use crate::events::EventHandler;
 use crate::dom::VNode as DomVNode;
+use crate::events::EventHandler;
 use crate::OutputType;
 
 /// DOM output using the stdweb crate
