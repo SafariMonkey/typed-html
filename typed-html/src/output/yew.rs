@@ -80,7 +80,7 @@ macro_rules! declare_events_yew {
 }
 
 // TODO? these are all the "on*" attributes defined in the HTML5 standard, with
-// the ones I've been unable to match to stdweb event types commented out.
+// the ones I've been unable to match to yew event types commented out.
 //
 // This needs review.
 
