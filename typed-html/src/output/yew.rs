@@ -12,22 +12,22 @@ use crate::events::EventHandler;
 use crate::OutputType;
 
 /// DOM output using the stdweb crate
-pub struct Yew<COMP: Component + Renderable<COMP>> {
-    component_type: PhantomData<COMP>,
+pub struct Yew<C: Component + Renderable<C>> {
+    component_type: PhantomData<C>,
 }
 
-impl<COMP: Component + Renderable<COMP>> OutputType for Yew<COMP> {
-    type Events = Events<COMP>;
-    type EventTarget = VTag<COMP>;
+impl<C: Component + Renderable<C>> OutputType for Yew<C> {
+    type Events = Events<C>;
+    type EventTarget = VTag<C>;
     type EventListenerHandle = ();
 }
 
 macro_rules! declare_events_yew {
     ($($name:ident : $action:ident ,)*) => {
         /// Container type for DOM events.
-        pub struct Events<COMP: Component + Renderable<COMP>> {
+        pub struct Events<C: Component + Renderable<C>> {
             $(
-                pub $name: Option<Box<dyn EventHandler<Yew<COMP>, html::$action::Event>>>,
+                pub $name: Option<Box<dyn EventHandler<Yew<C>, html::$action::Event>>>,
             )*
         }
 
@@ -36,20 +36,20 @@ macro_rules! declare_events_yew {
                 const EVENT_TYPE: &'static str = stringify!($name);
             }
 
-            impl<F, COMP> From<F> for BoxedListener<COMP, html::$action::Event>
+            impl<F, C> From<F> for BoxedListener<C, html::$action::Event>
             where
-                COMP: Component + Renderable<COMP>,
-                F: Fn(html::$action::Event) -> COMP::Message + 'static,
+                C: Component + Renderable<C>,
+                F: Fn(html::$action::Event) -> C::Message + 'static,
             {
                 fn from(f: F) -> Self {
                     BoxedListener(Some(Box::new(html::$action::Wrapper::from(f))), PhantomData)
                 }
             }
 
-            impl<F, COMP> From<F> for Box<dyn EventHandler<Yew<COMP>, html::$action::Event>>
+            impl<F, C> From<F> for Box<dyn EventHandler<Yew<C>, html::$action::Event>>
             where
-                F: Fn(html::$action::Event) -> COMP::Message + 'static,
-                COMP: Component + Renderable<COMP>,
+                F: Fn(html::$action::Event) -> C::Message + 'static,
+                C: Component + Renderable<C>,
             {
                 fn from(f: F) -> Self {
                     Box::new(BoxedListener::from(f))
@@ -57,7 +57,7 @@ macro_rules! declare_events_yew {
             }
         )*
 
-        impl<COMP: Component + Renderable<COMP>> Default for Events<COMP> {
+        impl<C: Component + Renderable<C>> Default for Events<C> {
             fn default() -> Self {
                 Events {
                     $(
@@ -160,7 +160,7 @@ declare_events_yew! {
     // waiting: ?,
 }
 
-impl<COMP: Component + Renderable<COMP>> Display for Events<COMP> {
+impl<C: Component + Renderable<C>> Display for Events<C> {
     fn fmt(&self, _f: &mut Formatter) -> Result<(), Error> {
         Ok(())
     }
@@ -175,17 +175,17 @@ pub trait ConcreteEvent {
     const EVENT_TYPE: &'static str;
 }
 
-pub struct BoxedListener<COMP: Component + Renderable<COMP>, E: ConcreteEvent>(
-    Option<Box<dyn Listener<COMP>>>,
+pub struct BoxedListener<C: Component + Renderable<C>, E: ConcreteEvent>(
+    Option<Box<dyn Listener<C>>>,
     PhantomData<E>,
 );
 
-impl<E, COMP> EventHandler<Yew<COMP>, E> for BoxedListener<COMP, E>
+impl<E, C> EventHandler<Yew<C>, E> for BoxedListener<C, E>
 where
     E: ConcreteEvent,
-    COMP: Component + Renderable<COMP>,
+    C: Component + Renderable<C>,
 {
-    fn attach(&mut self, target: &mut <Yew<COMP> as OutputType>::EventTarget) -> () {
+    fn attach(&mut self, target: &mut <Yew<C> as OutputType>::EventTarget) -> () {
         let handler = self.0.take().unwrap();
         target.add_listener(handler)
     }
@@ -195,14 +195,14 @@ where
     }
 }
 
-impl<COMP: Component + Renderable<COMP>> Yew<COMP> {
-    pub fn install_handlers(target: &mut VTag<COMP>, handlers: &mut Events<COMP>) {
+impl<C: Component + Renderable<C>> Yew<C> {
+    pub fn install_handlers(target: &mut VTag<C>, handlers: &mut Events<C>) {
         for_events_yew!(handler in handlers => {
             handler.attach(target);
         });
     }
 
-    pub fn build(vnode: DomVNode<'_, Yew<COMP>>) -> Html<COMP> {
+    pub fn build(vnode: DomVNode<'_, Yew<C>>) -> Html<C> {
         match vnode {
             DomVNode::Text(text) => VText::new(text.to_owned()).into(),
             DomVNode::UnsafeText(text) => VText::new(text.to_owned()).into(),
@@ -213,9 +213,9 @@ impl<COMP: Component + Renderable<COMP>> Yew<COMP> {
                     .into_iter()
                     .map(|(k, v)| (k.to_owned(), v))
                     .collect();
-                Yew::<COMP>::install_handlers(&mut tag, element.events);
+                Yew::<C>::install_handlers(&mut tag, element.events);
                 for child in element.children {
-                    tag.add_child(Yew::<COMP>::build(child))
+                    tag.add_child(Yew::<C>::build(child))
                 }
                 tag.into()
             }
